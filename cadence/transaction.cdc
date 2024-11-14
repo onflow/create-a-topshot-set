@@ -1,20 +1,19 @@
 import TopShot from 0x01
 
-
 transaction {
-    
+
     let admin: &TopShot.Admin
 
-	prepare(acct: AuthAccount) {
-    
-        self.admin = acct.borrow<&TopShot.Admin>(from: /storage/TopShotAdmin)
-        ?? panic("Cant borrow admin resource")
+    prepare(signer: auth(Storage, Capabilities) &Account) {
+        
+        let adminCap = signer.capabilities.storage.borrow<&TopShot.Admin>(/storage/TopShotAdmin)
+            ?? panic("Cannot borrow admin resource")
 
+        self.admin = adminCap
     }
 
-    execute{
+    execute {
         self.admin.createSet(name: "Rookies")
-        log("set created")
+        log("Set created")
     }
 }
-
