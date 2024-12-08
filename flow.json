@@ -118,8 +118,7 @@
 		"emulator": {
 			"emulator-account": [
 				"Recipe",
-				"TopShot",
-				"TopShotLocking"
+				"TopShot"
 			]
 		}
 	}

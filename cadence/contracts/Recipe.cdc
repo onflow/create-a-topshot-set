@@ -1,5 +1,5 @@
-
 import "TopShot"
+import "NonFungibleToken"
 
 access(all) contract Recipe {
     // This is a snippet extracting the relevant logic from the TopShot contract for demonstration purposes
@@ -11,9 +11,20 @@ access(all) contract Recipe {
     // Variable size dictionary of Set resources
     access(self) var sets: @{UInt32: Set}
 
-    // The ID that is used to create Sets. Every time a Set is created
-    // setID is assigned to the new set's ID and then is incremented by 1.
-    access(all) var nextSetID: UInt32
+    // The ID used to create Sets
+    access(self) var nextSetID: UInt32
+
+    // Events
+    access(all) event PlayAddedToSet(setID: UInt32, playID: UInt32)
+    access(all) event PlayRetiredFromSet(setID: UInt32, playID: UInt32, numMoments: UInt32)
+    access(all) event SetLocked(setID: UInt32)
+    access(all) event SetCreated(setID: UInt32, series: UInt32)
+
+    init() {
+        self.setDatas = {}
+        self.sets <- {}
+        self.nextSetID = 0
+    }
 
     // A Set is a grouping of Plays that have occurred in the real world
     // that make up a related group of collectibles, like sets of baseball
@@ -70,26 +81,30 @@ access(all) contract Recipe {
             self.locked = false
             self.numberMintedPerPlay = {}
 
-            TopShot.setDatas[self.setID] = SetData(name: name)
+            TopShot.setDatas[self.setID] = Recipe.SetData(name: name)
         }
 
-        view fun getPlays(): [UInt32] {
+        // Get the list of Plays in the Set
+        access(all) view fun getPlays(): [UInt32] {
             return self.plays
         }
 
-        view fun getRetired(): {UInt32: Bool} {
+        // Get the retired status of Plays in the Set
+        access(all) view fun getRetired(): {UInt32: Bool} {
             return self.retired
         }
 
-        view fun getNumMintedPerPlay(): {UInt32: UInt32} {
+        // Get the number of Moments minted for each Play
+        access(all) view fun getNumMintedPerPlay(): {UInt32: UInt32} {
             return self.numberMintedPerPlay
         }
 
+        // Add a Play to the Set
         access(all) fun addPlay(playID: UInt32) {
             pre {
-                TopShot.playDatas[playID] != nil: "Cannot add the Play to Set: Play doesn't exist."
-                !self.locked: "Cannot add the play to the Set after the set has been locked."
-                self.numberMintedPerPlay[playID] == nil: "The play has already been added to the set."
+                TopShot.playDatas[playID] != nil: "Cannot add Play: Play doesn't exist."
+                !self.locked: "Cannot add Play: Set is locked."
+                self.numberMintedPerPlay[playID] == nil: "Play already added."
             }
 
             self.plays.append(playID)
@@ -99,17 +114,23 @@ access(all) contract Recipe {
             emit PlayAddedToSet(setID: self.setID, playID: playID)
         }
 
+        // Retire a Play from the Set
         access(all) fun retirePlay(playID: UInt32) {
             pre {
-                self.retired[playID] != nil: "Cannot retire the Play: Play doesn't exist in this set!"
+                self.retired[playID] != nil: "Cannot retire Play: Play doesn't exist in set."
             }
 
             if !self.retired[playID]! {
                 self.retired[playID] = true
-                emit PlayRetiredFromSet(setID: self.setID, playID: playID, numMoments: self.numberMintedPerPlay[playID]!)
+                emit PlayRetiredFromSet(
+                    setID: self.setID,
+                    playID: playID,
+                    numMoments: self.numberMintedPerPlay[playID]!
+                )
             }
         }
 
+        // Lock the Set to prevent further modifications
         access(all) fun lock() {
             if !self.locked {
                 self.locked = true
@@ -117,28 +138,35 @@ access(all) contract Recipe {
             }
         }
 
+        // Mint a Moment from a Play in the Set
         access(all) fun mintMoment(playID: UInt32): @NFT {
             pre {
-                self.retired[playID] != nil: "Cannot mint the moment: This play doesn't exist."
-                !self.retired[playID]!: "Cannot mint the moment from this play: This play has been retired."
+                self.retired[playID] != nil: "Cannot mint: Play doesn't exist."
+                !self.retired[playID]!: "Cannot mint: Play retired."
             }
 
             let numInPlay = self.numberMintedPerPlay[playID]!
-            let newMoment: @NFT <- create NFT(serialNumber: numInPlay + UInt32(1), playID: playID, setID: self.setID)
+            let newMoment: @NFT <- create NFT(
+                serialNumber: numInPlay + UInt32(1),
+                playID: playID,
+                setID: self.setID
+            )
             self.numberMintedPerPlay[playID] = numInPlay + UInt32(1)
             return <-newMoment
         }
     }
 
+    // Admin resource to manage the contract
     access(all) resource Admin {
 
+        // Create a new Set
         access(all) fun createSet(name: String): UInt32 {
             var newSet <- create Set(name: name)
             TopShot.nextSetID = TopShot.nextSetID + UInt32(1)
 
             let newID = newSet.setID
-            emit SetCreated(setID: newSet.setID, series: TopShot.currentSeries)
-            TopShot.sets[newID] <-! newSet
+            emit SetCreated(setID: newID, series: TopShot.currentSeries)
+            Recipe.sets[newID] <-! newSet
             return newID
         }
     }
