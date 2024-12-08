@@ -14,6 +14,9 @@ access(all) contract Recipe {
     // The ID used to create Sets
     access(self) var nextSetID: UInt32
 
+    access(all) var playDatas: {UInt32: Recipe.Play}
+    access(all) var nextPlayID: UInt32
+
     // Events
     access(all) event PlayAddedToSet(setID: UInt32, playID: UInt32)
     access(all) event PlayRetiredFromSet(setID: UInt32, playID: UInt32, numMoments: UInt32)
@@ -24,6 +27,34 @@ access(all) contract Recipe {
         self.setDatas = {}
         self.sets <- {}
         self.nextSetID = 0
+        self.playDatas = {}
+        self.nextPlayID = 0
+    }
+
+    // Play is a Struct that holds metadata associated 
+    // with a specific NBA play, like the legendary moment when 
+    // Ray Allen hit the 3 to tie the Heat and Spurs in the 2013 finals game 6
+    // or when Lance Stephenson blew in the ear of Lebron James.
+    //
+    // Moment NFTs will all reference a single play as the owner of
+    // its metadata. The plays are publicly accessible, so anyone can
+    // read the metadata associated with a specific play ID
+    //
+    access(all) struct Play {
+        // The unique ID for the Play
+        access(all) let playID: UInt32
+
+        // Stores all the metadata about the play as a string mapping
+        // This is not the long-term way NFT metadata will be stored.
+        access(all) let metadata: {String: String}
+
+        init(metadata: {String: String}) {
+            pre {
+                metadata.length != 0: "New Play metadata cannot be empty"
+            }
+            self.playID = TopShot.nextPlayID
+            self.metadata = metadata
+        }
     }
 
     // A Set is a grouping of Plays that have occurred in the real world
@@ -51,7 +82,7 @@ access(all) contract Recipe {
             pre {
                 name.length > 0: "New Set name cannot be empty"
             }
-            self.setID = TopShot.nextSetID
+            self.setID = Recipe.nextSetID
             self.name = name
             self.series = TopShot.currentSeries
         }
@@ -75,7 +106,7 @@ access(all) contract Recipe {
         access(contract) var numberMintedPerPlay: {UInt32: UInt32}
 
         init(name: String) {
-            self.setID = TopShot.nextSetID
+            self.setID = Recipe.nextSetID
             self.plays = []
             self.retired = {}
             self.locked = false
@@ -102,7 +133,7 @@ access(all) contract Recipe {
         // Add a Play to the Set
         access(all) fun addPlay(playID: UInt32) {
             pre {
-                TopShot.playDatas[playID] != nil: "Cannot add Play: Play doesn't exist."
+                Recipe.playDatas[playID] != nil: "Cannot add Play: Play doesn't exist."
                 !self.locked: "Cannot add Play: Set is locked."
                 self.numberMintedPerPlay[playID] == nil: "Play already added."
             }
@@ -139,17 +170,18 @@ access(all) contract Recipe {
         }
 
         // Mint a Moment from a Play in the Set
-        access(all) fun mintMoment(playID: UInt32): @NFT {
+        access(all) fun mintMoment(playID: UInt32): @TopShot.NFT {
             pre {
                 self.retired[playID] != nil: "Cannot mint: Play doesn't exist."
                 !self.retired[playID]!: "Cannot mint: Play retired."
             }
 
             let numInPlay = self.numberMintedPerPlay[playID]!
-            let newMoment: @NFT <- create NFT(
+            let newMoment: @TopShot.NFT <- create TopShot.NFT(
                 serialNumber: numInPlay + UInt32(1),
                 playID: playID,
-                setID: self.setID
+                setID: self.setID,
+                subeditionID: 0
             )
             self.numberMintedPerPlay[playID] = numInPlay + UInt32(1)
             return <-newMoment
@@ -162,7 +194,7 @@ access(all) contract Recipe {
         // Create a new Set
         access(all) fun createSet(name: String): UInt32 {
             var newSet <- create Set(name: name)
-            TopShot.nextSetID = TopShot.nextSetID + UInt32(1)
+            Recipe.nextSetID = Recipe.nextSetID + UInt32(1)
 
             let newID = newSet.setID
             emit SetCreated(setID: newID, series: TopShot.currentSeries)

@@ -118,7 +118,8 @@
 		"emulator": {
 			"emulator-account": [
 				"Recipe",
-				"TopShot"
+				"TopShot",
+				"TopShotLocking"
 			]
 		}
 	}
