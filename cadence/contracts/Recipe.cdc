@@ -81,7 +81,7 @@ access(all) contract Recipe {
             self.locked = false
             self.numberMintedPerPlay = {}
 
-            TopShot.setDatas[self.setID] = Recipe.SetData(name: name)
+            Recipe.setDatas[self.setID] = Recipe.SetData(name: name)
         }
 
         // Get the list of Plays in the Set
