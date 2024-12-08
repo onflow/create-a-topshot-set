@@ -178,12 +178,12 @@ access(all) contract Recipe {
 
             let numInPlay = self.numberMintedPerPlay[playID]!
             let newMoment: @TopShot.NFT <- create TopShot.NFT(
-                serialNumber: numInPlay + UInt32(1),
+                serialNumber: numInPlay + 1,
                 playID: playID,
                 setID: self.setID,
                 subeditionID: 0
             )
-            self.numberMintedPerPlay[playID] = numInPlay + UInt32(1)
+            self.numberMintedPerPlay[playID] = numInPlay + 1
             return <-newMoment
         }
     }
@@ -194,7 +194,7 @@ access(all) contract Recipe {
         // Create a new Set
         access(all) fun createSet(name: String): UInt32 {
             var newSet <- create Set(name: name)
-            Recipe.nextSetID = Recipe.nextSetID + UInt32(1)
+            Recipe.nextSetID = Recipe.nextSetID + 1
 
             let newID = newSet.setID
             emit SetCreated(setID: newID, series: TopShot.currentSeries)

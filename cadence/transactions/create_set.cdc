@@ -4,12 +4,10 @@ transaction {
 
     let admin: &TopShot.Admin
 
-    prepare(signer: auth(Storage, Capabilities) &Account) {
-        
-        let adminCap = signer.capabilities.storage.borrow<&TopShot.Admin>(/storage/TopShotAdmin)
+    prepare(signer: auth(Storage) &Account) {
+        // Borrow the Admin resource from the specified storage path
+        self.admin = signer.storage.borrow<&TopShot.Admin>(from: /storage/TopShotAdmin)
             ?? panic("Cannot borrow admin resource")
-
-        self.admin = adminCap
     }
 
     execute {
