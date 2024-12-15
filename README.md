@@ -36,7 +36,7 @@ Recipe metadata, such as title, author, and category labels, is stored in `index
 recipe-name/
 ├── cadence/                          # Cadence files for recipe examples
 │   ├── contracts/Recipe.cdc          # Contract code
-│   ├── transactions/create_et.cdc   # Transaction code
+│   ├── transactions/create_set.cdc   # Transaction code
 │   ├── tests/Recipe_test.cdc           # Tests code
 ├── explanations/           # Explanation files for recipe examples
 │   ├── contract.txt        # Contract code explanation
