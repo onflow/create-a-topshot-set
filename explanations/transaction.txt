@@ -1,3 +1,5 @@
-To create a set, you first need to get a reference to the admin resource from the AuthAccount.
+To create a Set in the TopShot contract, the transaction first retrieves a reference to the Admin resource. This is done by borrowing the Admin resource from the signer's account storage using the specified storage path (/storage/TopShotAdmin). If the resource is not found, the transaction will terminate with an error.
 
-Once you receive that reference you can then create a set that gets stored in the sets and setsData dictionary.
+Once the reference to the Admin resource is obtained, the transaction calls the createSet function, providing the name for the new Set (in this case, "Rookies"). This function creates a new Set resource and automatically adds it to the sets dictionary for management, while also updating the corresponding SetData entry for metadata. After successfully creating the Set, the transaction logs a confirmation message.
+
+This flow ensures that only authorized accounts with access to the Admin resource can create new Sets.
